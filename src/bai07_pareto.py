@@ -73,6 +73,43 @@ def _as_matrix(x) -> np.ndarray:
     return matrix.reshape((len(REGIONS), len(ITEMS)))
 
 
+def _candidate_vectors(raw_solutions) -> list[np.ndarray]:
+    """Normalize optimizer output into valid 24-variable candidate vectors.
+
+    Some pymoo failure modes on hosted environments return ``None`` or a
+    partial/object-shaped ``result.X`` instead of a full ``(n, 24)`` array.
+    Streamlit Cloud then surfaced a redacted ``ValueError`` when those partial
+    values reached ``_as_matrix``. This helper filters such candidates and lets
+    ``run_nsga2`` fall back gracefully to random feasible search.
+    """
+    expected_size = len(REGIONS) * len(ITEMS)
+    if raw_solutions is None:
+        return []
+
+    try:
+        array = np.asarray(raw_solutions, dtype=float)
+    except (TypeError, ValueError):
+        vectors: list[np.ndarray] = []
+        try:
+            iterator = list(raw_solutions)
+        except TypeError:
+            return []
+        for item in iterator:
+            try:
+                vector = np.asarray(item, dtype=float).reshape(-1)
+            except (TypeError, ValueError):
+                continue
+            if vector.size == expected_size:
+                vectors.append(vector)
+        return vectors
+
+    if array.ndim == 1:
+        return [array.reshape(-1)] if array.size == expected_size else []
+    if array.ndim >= 2:
+        return [row.reshape(-1) for row in array if row.size == expected_size]
+    return []
+
+
 def _bounded_random_allocation(total: float, caps: np.ndarray, rng: np.random.Generator) -> np.ndarray | None:
     """Allocate a total across bounded buckets using a sequential random repair."""
     caps = np.asarray(caps, dtype=float)
@@ -178,7 +215,10 @@ def evaluate_solution(x) -> dict[str, float]:
 
 
 def _is_feasible(x, budget: float, fairness: bool, lambda_: float) -> bool:
-    matrix = _as_matrix(x)
+    try:
+        matrix = _as_matrix(x)
+    except (TypeError, ValueError):
+        return False
     if np.any(matrix < -1e-8):
         return False
     if matrix.sum() > budget + 1e-6:
@@ -384,18 +424,20 @@ def run_nsga2(
     )
 
     feasible_solutions = []
-    for x in np.atleast_2d(result.X):
+    for x in _candidate_vectors(getattr(result, "X", None)):
         if _is_feasible(x, budget, fairness, lambda_):
-            feasible_solutions.append(np.asarray(x, dtype=float))
+            feasible_solutions.append(np.asarray(x, dtype=float).reshape(-1))
 
     if not feasible_solutions:
-        return random_feasible_search(
+        fallback_result = random_feasible_search(
             n_samples=max(int(pop_size), 500),
             seed=seed,
             budget=budget,
             fairness=fairness,
             lambda_=lambda_,
         )
+        fallback_result["note"] = "NSGA-II không trả nghiệm khả thi hợp lệ; " + fallback_result["note"]
+        return fallback_result
 
     all_df = _rows_from_solutions(feasible_solutions, "nsga2")
     pareto_df = _pareto_filter(all_df)

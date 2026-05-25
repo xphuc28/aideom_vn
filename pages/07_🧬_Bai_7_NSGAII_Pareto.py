@@ -10,7 +10,7 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.bai04_region_lp import ITEMS, ITEM_NAMES, REGIONS, REGION_NAMES
-from src.bai07_pareto import MODULE_TITLE, module_status, run_nsga2
+from src.bai07_pareto import MODULE_TITLE, module_status, random_feasible_search, run_nsga2
 from src.data_loader import load_regions
 from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
 from src.visualization import download_dataframe_button, render_kpi_cards
@@ -28,13 +28,24 @@ def get_data():
 
 @st.cache_data(show_spinner=True)
 def run_pareto_cached(pop_size: int, n_gen: int, seed: int, fairness: bool, lambda_: float):
-    return run_nsga2(
-        pop_size=pop_size,
-        n_gen=n_gen,
-        seed=seed,
-        fairness=fairness,
-        lambda_=lambda_,
-    )
+    try:
+        return run_nsga2(
+            pop_size=pop_size,
+            n_gen=n_gen,
+            seed=seed,
+            fairness=fairness,
+            lambda_=lambda_,
+        )
+    except Exception as exc:
+        fallback_samples = min(max(int(pop_size) * max(int(n_gen), 1), 500), 5000)
+        result = random_feasible_search(
+            n_samples=fallback_samples,
+            seed=seed,
+            fairness=fairness,
+            lambda_=lambda_,
+        )
+        result["note"] = f"NSGA-II gặp lỗi {type(exc).__name__}; đã dùng random feasible fallback. " + result["note"]
+        return result
 
 
 def allocation_from_solution(row: pd.Series) -> pd.DataFrame:
