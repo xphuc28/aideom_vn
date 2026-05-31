@@ -40,8 +40,14 @@ aideom_vn/
 │   ├── tables/
 │   └── models/
 ├── reports/
+│   ├── aideom_vn_research_report.pdf
+│   ├── project_summary.md
+│   ├── figures/
+│   ├── bai12_report_kpi_snapshot.csv
+│   └── bai12_report_allocation_snapshot.csv
 ├── scripts/
-│   └── count_lines.py
+│   ├── count_lines.py
+│   └── generate_research_report.py
 ├── tests/
 ├── requirements.txt
 ├── README.md
@@ -78,6 +84,14 @@ python scripts/count_lines.py
 ```
 
 Ghi chú môi trường: trên máy hiện tại, Anaconda Python 3.13 bị segmentation fault khi nạp pytest/debugging trước lúc collect tests. Các assertion chính đã được kiểm tra trực tiếp bằng Python trong quá trình phát triển. Khi dùng venv Python 3.10+ sạch, hãy chạy lại `python -m pytest`.
+
+## Báo cáo nghiên cứu
+
+Báo cáo PDF theo yêu cầu đề bài nằm tại `reports/aideom_vn_research_report.pdf`. Báo cáo có văn phong học thuật tiếng Việt, bảng tóm tắt 12 mô-đun, hình minh họa webapp, hình kết quả sau khi chạy phần mềm và 4 bảng kết quả chính từ Bài 12. Có thể tái tạo báo cáo bằng:
+
+```bash
+python scripts/generate_research_report.py
+```
 
 ## Deploy Streamlit Cloud
 
