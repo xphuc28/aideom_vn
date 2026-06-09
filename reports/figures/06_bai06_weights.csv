@@ -1,0 +1,9 @@
+﻿criterion,expert_weight,entropy_weight,is_benefit
+grdp_per_capita,0.14,0.12858537133489636,True
+fdi_registered,0.13,0.145767838422678,True
+digital_index,0.16,0.10881585556245327,True
+ai_readiness,0.18,0.13293293510485935,True
+trained_labor,0.13,0.13683110559214728,True
+rd_intensity,0.11,0.1749076949124278,True
+internet_penetration,0.1,0.09514516620559946,True
+gini,0.05,0.07701403286493841,False

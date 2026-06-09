@@ -40,14 +40,10 @@ aideom_vn/
 │   ├── tables/
 │   └── models/
 ├── reports/
-│   ├── aideom_vn_research_report.pdf
 │   ├── project_summary.md
 │   ├── figures/
-│   ├── bai12_report_kpi_snapshot.csv
-│   └── bai12_report_allocation_snapshot.csv
 ├── scripts/
 │   ├── count_lines.py
-│   └── generate_research_report.py
 ├── tests/
 ├── requirements.txt
 ├── README.md

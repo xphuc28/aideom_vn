@@ -1,0 +1,5 @@
+|   rank | growth_oriented              | inclusive_oriented           |
+|-------:|:-----------------------------|:-----------------------------|
+|      1 | Thông tin-Truyền thông-CNTT  | Công nghiệp chế biến chế tạo |
+|      2 | Công nghiệp chế biến chế tạo | Thông tin-Truyền thông-CNTT  |
+|      3 | Tài chính-Ngân hàng-Bảo hiểm | Nông-Lâm-Thủy sản            |

@@ -1,0 +1,3 @@
+| sector                       |   x_AI |   displaced_job |   x_H_for_retraining |   x_H_for_nonnegative_net |   minimum_x_H_required |
+|:-----------------------------|-------:|----------------:|---------------------:|--------------------------:|-----------------------:|
+| Công nghiệp chế biến chế tạo |   5000 |            1848 |              1490.32 |                         0 |                1490.32 |

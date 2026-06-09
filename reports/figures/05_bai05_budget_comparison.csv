@@ -1,0 +1,4 @@
+﻿scenario,objective,total_cost,selected_count
+budget_80000,142000.0,75500.0,9
+budget_100000,171200.0,92500.0,11
+expected_value,118575.0,75500.0,9

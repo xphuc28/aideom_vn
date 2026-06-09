@@ -1,0 +1,16 @@
+﻿project_id,project_name,sector,cost,benefit,cost_year_1_2,cost_year_3_5,success_probability,benefit_cost_ratio,expected_benefit
+P1,Trung tâm dữ liệu quốc gia,Hạ tầng số,16000,27000,9000,7000,0.86,1.6875,23220.0
+P2,Nền tảng cloud chính phủ,Hạ tầng số,14000,23500,8500,5500,0.88,1.6785714285714286,20680.0
+P3,Băng rộng nông thôn,Bao trùm số,9000,15000,5500,3500,0.9,1.6666666666666667,13500.0
+P4,Định danh số liên thông,Dịch vụ công,6500,13000,3500,3000,0.92,2.0,11960.0
+P5,Cổng dịch vụ công thông minh,Dịch vụ công,7000,12500,4000,3000,0.91,1.7857142857142858,11375.0
+P6,Voucher chuyển đổi số SME,Doanh nghiệp số,6000,10800,3200,2800,0.84,1.8,9072.0
+P7,SOC an ninh mạng quốc gia,An toàn số,8500,16000,5000,3500,0.87,1.8823529411764706,13920.0
+P8,AI chẩn đoán y tế,Y tế AI,9000,19000,4200,4800,0.72,2.111111111111111,13680.0
+P9,Hành lang logistics thông minh,Logistics,9500,17000,5000,4500,0.82,1.7894736842105263,13940.0
+P10,Chuỗi cung ứng nông nghiệp số,Nông nghiệp số,7500,14500,4200,3300,0.85,1.9333333333333333,12325.0
+P11,Sàn dữ liệu mở cho doanh nghiệp,Dữ liệu,8000,14200,4500,3500,0.8,1.775,11360.0
+P12,Kho dữ liệu AI quốc gia,Dữ liệu AI,7000,12000,3800,3200,0.83,1.7142857142857142,9960.0
+P13,AI giáo dục cá nhân hóa,Giáo dục AI,6500,14000,2500,4000,0.76,2.1538461538461537,10640.0
+P14,Đào tạo kỹ năng số quốc gia,Nhân lực số,5000,9500,2500,2500,0.94,1.9,8930.0
+P15,Trợ lý số cho chính quyền địa phương,GovTech,6000,11200,3500,2500,0.86,1.8666666666666667,9632.0

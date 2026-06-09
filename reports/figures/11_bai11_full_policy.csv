@@ -1,0 +1,82 @@
+﻿GDP_growth,Digital_index,AI_capacity,Unemployment_risk,action,action_name,q_value
+low,low,low,low,3,a3 AI dẫn dắt,13.968645716684444
+low,low,low,medium,0,a0 Truyền thống,13.403151617927797
+low,low,low,high,1,a1 Cân bằng,13.31165991436437
+low,low,medium,low,0,a0 Truyền thống,14.260143007776593
+low,low,medium,medium,0,a0 Truyền thống,13.660715755174191
+low,low,medium,high,2,a2 Số hóa nhanh,13.975957021616333
+low,low,high,low,0,a0 Truyền thống,14.075830464844609
+low,low,high,medium,0,a0 Truyền thống,14.110656187480966
+low,low,high,high,0,a0 Truyền thống,11.320330305310577
+low,medium,low,low,2,a2 Số hóa nhanh,14.24486463906831
+low,medium,low,medium,2,a2 Số hóa nhanh,14.37706094050363
+low,medium,low,high,3,a3 AI dẫn dắt,14.08353938395579
+low,medium,medium,low,0,a0 Truyền thống,14.624378097983376
+low,medium,medium,medium,2,a2 Số hóa nhanh,13.42853214809923
+low,medium,medium,high,0,a0 Truyền thống,13.478390471731537
+low,medium,high,low,0,a0 Truyền thống,13.301020422237842
+low,medium,high,medium,0,a0 Truyền thống,13.901018009723947
+low,medium,high,high,0,a0 Truyền thống,10.022373724872798
+low,high,low,low,0,a0 Truyền thống,14.387651397287481
+low,high,low,medium,0,a0 Truyền thống,14.29214821830858
+low,high,low,high,3,a3 AI dẫn dắt,13.22837098108359
+low,high,medium,low,0,a0 Truyền thống,14.357112434452828
+low,high,medium,medium,0,a0 Truyền thống,14.29505338673699
+low,high,medium,high,3,a3 AI dẫn dắt,13.265642589731424
+low,high,high,low,0,a0 Truyền thống,14.048636355415832
+low,high,high,medium,0,a0 Truyền thống,11.824596457558894
+low,high,high,high,0,a0 Truyền thống,12.497545238675086
+medium,low,low,low,4,a4 Bao trùm,14.952128964565032
+medium,low,low,medium,1,a1 Cân bằng,14.858516466435313
+medium,low,low,high,0,a0 Truyền thống,14.540787502184864
+medium,low,medium,low,0,a0 Truyền thống,14.892005463835893
+medium,low,medium,medium,0,a0 Truyền thống,14.777196238815371
+medium,low,medium,high,1,a1 Cân bằng,13.644058006718499
+medium,low,high,low,0,a0 Truyền thống,14.059740689838579
+medium,low,high,medium,0,a0 Truyền thống,14.090468347531269
+medium,low,high,high,4,a4 Bao trùm,13.873683774482778
+medium,medium,low,low,3,a3 AI dẫn dắt,14.989951605148475
+medium,medium,low,medium,1,a1 Cân bằng,14.844268831367998
+medium,medium,low,high,4,a4 Bao trùm,14.361966636357145
+medium,medium,medium,low,2,a2 Số hóa nhanh,14.874448087198525
+medium,medium,medium,medium,0,a0 Truyền thống,14.756492581957085
+medium,medium,medium,high,4,a4 Bao trùm,14.473899709076955
+medium,medium,high,low,0,a0 Truyền thống,13.038752772832094
+medium,medium,high,medium,1,a1 Cân bằng,14.334309383782335
+medium,medium,high,high,0,a0 Truyền thống,13.903502260109093
+medium,high,low,low,0,a0 Truyền thống,14.918706268529187
+medium,high,low,medium,0,a0 Truyền thống,14.80732004949883
+medium,high,low,high,4,a4 Bao trùm,14.34087728890874
+medium,high,medium,low,0,a0 Truyền thống,14.884102536745692
+medium,high,medium,medium,0,a0 Truyền thống,14.762690781829303
+medium,high,medium,high,0,a0 Truyền thống,14.39875317349391
+medium,high,high,low,2,a2 Số hóa nhanh,13.896678812825522
+medium,high,high,medium,2,a2 Số hóa nhanh,13.780280998687154
+medium,high,high,high,0,a0 Truyền thống,14.344348831652356
+high,low,low,low,0,a0 Truyền thống,15.011656144178113
+high,low,low,medium,1,a1 Cân bằng,14.952063168359265
+high,low,low,high,0,a0 Truyền thống,14.280055309670587
+high,low,medium,low,0,a0 Truyền thống,14.9909457302015
+high,low,medium,medium,0,a0 Truyền thống,14.839501739167865
+high,low,medium,high,1,a1 Cân bằng,14.112508822060956
+high,low,high,low,4,a4 Bao trùm,14.547007247983025
+high,low,high,medium,1,a1 Cân bằng,13.222711563968371
+high,low,high,high,0,a0 Truyền thống,13.789309457337168
+high,medium,low,low,0,a0 Truyền thống,15.030303254871274
+high,medium,low,medium,0,a0 Truyền thống,14.87054715386185
+high,medium,low,high,0,a0 Truyền thống,14.012028643333934
+high,medium,medium,low,4,a4 Bao trùm,14.985778346375774
+high,medium,medium,medium,0,a0 Truyền thống,14.826884591935931
+high,medium,medium,high,0,a0 Truyền thống,14.24556773170215
+high,medium,high,low,0,a0 Truyền thống,14.81638481332573
+high,medium,high,medium,0,a0 Truyền thống,14.66885631521443
+high,medium,high,high,0,a0 Truyền thống,14.3786448037143
+high,high,low,low,3,a3 AI dẫn dắt,15.051414065990764
+high,high,low,medium,0,a0 Truyền thống,14.882852325320263
+high,high,low,high,4,a4 Bao trùm,14.351218816440902
+high,high,medium,low,0,a0 Truyền thống,14.974228969013474
+high,high,medium,medium,0,a0 Truyền thống,14.848327219293797
+high,high,medium,high,0,a0 Truyền thống,14.342949896139732
+high,high,high,low,0,a0 Truyền thống,14.860375665209816
+high,high,high,medium,0,a0 Truyền thống,14.736864378016318
+high,high,high,high,0,a0 Truyền thống,14.223901056950053

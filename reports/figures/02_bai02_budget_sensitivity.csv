@@ -1,0 +1,4 @@
+﻿budget,objective,status,binding_constraints,budget_shadow_price,x1,x2,x3,x4
+100.0,112.25,optimal,"budget_total, min_x1_hatang, min_x2_ai_data, min_x3_nhan_luc",1.35,25.0,15.0,20.0,40.0
+120.0,139.25,optimal,"budget_total, min_x1_hatang, min_x2_ai_data, min_x3_nhan_luc",1.35,25.0,15.0,20.0,60.0
+140.0,166.25,optimal,"budget_total, min_x1_hatang, min_x2_ai_data, min_x3_nhan_luc",1.35,25.0,15.0,20.0,80.0
