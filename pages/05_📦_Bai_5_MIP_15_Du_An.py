@@ -17,7 +17,13 @@ from src.bai05_mip_projects import (
     solve_budget_scenario,
     solve_with_risk_probabilities,
 )
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -72,6 +78,97 @@ def policy_interpretation(result: dict[str, object], scenario_100k: dict[str, ob
     ]
 
 
+def assignment_answers(result, scenario_100k, forced_result, risk_result, projects):
+    """Answer Bài 5 and disclose ID differences from the supplied PDF."""
+    if result["feasibility"]:
+        selected_ids = set(result["selected_df"]["project_id"])
+        selected_text = ", ".join(result["selected_df"]["project_id"])
+        count = len(result["selected_df"])
+    else:
+        selected_ids = set()
+        selected_text = "không có"
+        count = 0
+    selected_100k = set(scenario_100k["selected_df"]["project_id"])
+    added = sorted(selected_100k - selected_ids)
+    removed = sorted(selected_ids - selected_100k)
+    open_data_row = projects[projects["project_name"].str.contains("dữ liệu mở", case=False)].iloc[0]
+    mandatory_row = projects.loc[projects["project_id"] == "P14"].iloc[0]
+
+    programming = [
+        {
+            "code": "Câu 5.4.1",
+            "question": "Giải MIP và báo cáo dự án chọn, tổng chi phí, lợi ích và B/C.",
+            "answer": (
+                f"Feasible={result['feasibility']}; chọn {count} dự án: {selected_text}. "
+                f"Tổng chi phí={result['total_cost']:,.0f}, objective={result['objective']}, "
+                f"benefit/cost={result['benefit_cost_ratio']:.3f}."
+            ),
+            "evidence": "Bảng Danh sách dự án được chọn và KPI đầu trang.",
+        },
+        {
+            "code": "Câu 5.4.2",
+            "question": "Nới ngân sách lên 100.000 tỷ.",
+            "answer": (
+                f"Kịch bản 100k có objective={scenario_100k['objective']}, chi phí={scenario_100k['total_cost']:,.0f}, "
+                f"chọn {len(scenario_100k['selected_df'])} dự án. Dự án thêm: {', '.join(added) or 'không có'}; "
+                f"dự án bị loại: {', '.join(removed) or 'không có'}."
+            ),
+            "evidence": "Bảng So sánh ngân sách 80k vs 100k.",
+        },
+        {
+            "code": "Câu 5.4.3",
+            "question": "Bắt buộc chọn đồng thời P1 và P2.",
+            "answer": (
+                f"Kịch bản force P1 và P2 có feasibility={forced_result['feasibility']}. "
+                "Do mô hình vẫn giữ y1+y2<=1, yêu cầu chọn cả hai tạo mâu thuẫn logic và làm bài toán không khả thi."
+            ),
+            "evidence": "Ràng buộc loại trừ y1+y2<=1.",
+        },
+        {
+            "code": "Câu 5.4.4",
+            "question": "Tối đa hóa lợi ích kỳ vọng theo xác suất thành công.",
+            "answer": (
+                f"Nghiệm expected-value có objective={risk_result['objective']}, "
+                f"tổng chi phí={risk_result['total_cost']:,.0f}, chọn {len(risk_result['selected_df'])} dự án."
+            ),
+            "evidence": "Kịch bản Expected benefit trong bảng so sánh.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 5.5a",
+            "question": "Vì sao dự án Open Data có thể bị loại dù B/C cao?",
+            "answer": (
+                f"Trong source hiện tại, dự án dữ liệu mở là {open_data_row['project_id']} - {open_data_row['project_name']}, "
+                f"B/C={open_data_row['benefit_cost_ratio']:.3f} và trạng thái chọn="
+                f"{'có' if open_data_row['project_id'] in selected_ids else 'không'}. Nếu bị loại, nguyên nhân là chi phí cơ hội "
+                "trong ngân sách tổng/early budget và tương tác với các ràng buộc danh mục, không phải chỉ vì B/C riêng lẻ."
+            ),
+            "evidence": "project_dataframe và selected_df.",
+        },
+        {
+            "code": "Câu 5.5b",
+            "question": "Dự án bắt buộc P14 có làm giảm Z* và có hợp lý không?",
+            "answer": (
+                f"Source hiện tại gán P14 là “{mandatory_row['project_name']}”, không phải an ninh mạng như câu chữ trong PDF; "
+                "SOC an ninh mạng là P7. Vì chưa có counterfactual bỏ y14>=1, dashboard chưa định lượng được mức giảm Z*. "
+                "Về chính sách, một dự án nền tảng bắt buộc có thể hợp lý nhưng chi phí cơ hội phải được báo cáo bằng một lần chạy đối chứng."
+            ),
+            "status": "Phát hiện lệch mã dự án giữa PDF và source; không suy diễn số liệu.",
+        },
+        {
+            "code": "Câu 5.5c",
+            "question": "Mô hình hóa lợi ích cộng hưởng giữa hai dự án.",
+            "answer": (
+                "Thêm biến nhị phân z_ij biểu diễn hai dự án cùng được chọn, với z<=y_i, z<=y_j, "
+                "z>=y_i+y_j-1; sau đó cộng synergy_ij*z_ij vào hàm mục tiêu. Đây là mở rộng MIP chuẩn."
+            ),
+            "evidence": "Giải pháp mô hình hóa, chưa làm thay đổi nghiệm hiện tại.",
+        },
+    ]
+    return programming, policy
+
+
 projects = get_projects()
 
 st.title(MODULE_TITLE)
@@ -115,6 +212,7 @@ result = solve_cached(total_budget, early_budget, force_p1_p2, expected_value)
 scenario_80k = solve_bai05(total_budget=80000, early_budget=40000)
 scenario_100k = scenario_cached(100000)
 risk_result = risk_cached()
+forced_result = solve_cached(total_budget, early_budget, True, expected_value)
 
 render_kpi_cards(
     {
@@ -191,3 +289,14 @@ else:
 
 st.header("🏛️ 5. Diễn giải chính sách")
 policy_box(policy_interpretation(result, scenario_100k), kind="success")
+programming_answers, discussion_answers = assignment_answers(
+    result, scenario_100k, forced_result, risk_result, projects
+)
+render_assignment_answers(
+    programming_answers,
+    discussion_answers,
+    note=(
+        "Lưu ý đối chiếu đề: tên/mã một số dự án trong source hiện tại không trùng hoàn toàn "
+        "với bảng dự án trong PDF. Phần trả lời dùng đúng project_dataframe đang chạy và ghi rõ chỗ lệch."
+    ),
+)

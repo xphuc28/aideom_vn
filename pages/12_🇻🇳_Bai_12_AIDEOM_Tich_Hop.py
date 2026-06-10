@@ -17,7 +17,13 @@ from src.scenario_engine import (
     recommendation_text,
     run_all_scenarios,
 )
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -60,6 +66,101 @@ def radar_chart(kpi_df):
         margin=dict(l=20, r=20, t=60, b=20),
     )
     return fig
+
+
+def assignment_answers(kpi_df, macro, sectors, regions):
+    """Summarize compliance and answer the integrated scenario questions."""
+    best = kpi_df.sort_values("Overall_score", ascending=False).iloc[0]
+    growth = kpi_df.sort_values("GDP_gain", ascending=False).iloc[0]
+    jobs = kpi_df.sort_values("NetJob", ascending=False).iloc[0]
+    safest = (
+        kpi_df.assign(
+            total_risk=kpi_df["Inequality_risk"]
+            + kpi_df["Cyber_risk"]
+            + kpi_df["Emission_risk"]
+        )
+        .sort_values("total_risk")
+        .iloc[0]
+    )
+
+    programming = [
+        {
+            "code": "Yêu cầu 12.3a",
+            "question": "M1-M5 phải là các module Python độc lập, có docstring và unit test.",
+            "answer": (
+                "Logic được tách trong src/bai01...bai11 và src/scenario_engine.py; giao diện nằm trong pages/. "
+                "Thư mục tests/ chứa unit test theo module. Dashboard không huấn luyện lại Q-learning/NSGA-II trong Bài 12."
+            ),
+            "evidence": "Cấu trúc src/, pages/ và tests/ của repository.",
+        },
+        {
+            "code": "Yêu cầu 12.3b",
+            "question": "Dashboard có tối thiểu 4 tab chức năng.",
+            "answer": (
+                "Bài 12 có 6 tab: Tổng quan, 5 kịch bản, Phân bổ, Lao động & AI, Rủi ro, Khuyến nghị; "
+                "vượt mức tối thiểu của đề."
+            ),
+            "evidence": "Thanh tab hiển thị ngay trên page.",
+        },
+        {
+            "code": "Yêu cầu 12.3c",
+            "question": "Chạy và so sánh ít nhất S1, S3, S5.",
+            "answer": (
+                f"Scenario engine trả đủ {len(kpi_df)} kịch bản S1-S5. Bảng KPI chứa đồng thời GDP gain, "
+                "Digital, AI, Human, NetJob và ba nhóm rủi ro."
+            ),
+            "evidence": "Bảng kpi_df và allocation_long.",
+        },
+        {
+            "code": "Yêu cầu dữ liệu",
+            "question": "Sử dụng dữ liệu macro, ngành và vùng Việt Nam.",
+            "answer": (
+                f"Đã nạp macro {macro.shape[0]}x{macro.shape[1]}, sectors {sectors.shape[0]}x{sectors.shape[1]}, "
+                f"regions {regions.shape[0]}x{regions.shape[1]}."
+            ),
+            "evidence": "Ba CSV trong data/ và expander Dữ liệu nền đã nạp.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Kết luận tích hợp 1",
+            "question": "Kịch bản nào có điểm tổng hợp tốt nhất?",
+            "answer": (
+                f"{best['scenario']} - {best['scenario_name']} có Overall_score={best['Overall_score']:.2f}/100. "
+                "Đây là lựa chọn theo hàm chuẩn hóa/trọng số của scenario_engine, không phải phán quyết chính trị."
+            ),
+            "evidence": "Cột Overall_score.",
+        },
+        {
+            "code": "Kết luận tích hợp 2",
+            "question": "Kịch bản nào tối đa tăng trưởng và kịch bản nào tối đa việc làm?",
+            "answer": (
+                f"GDP gain cao nhất: {growth['scenario']} - {growth['scenario_name']} "
+                f"({growth['GDP_gain']:,.2f}). NetJob cao nhất: {jobs['scenario']} - "
+                f"{jobs['scenario_name']} ({jobs['NetJob']:,.2f})."
+            ),
+            "evidence": "Các cột GDP_gain và NetJob.",
+        },
+        {
+            "code": "Kết luận tích hợp 3",
+            "question": "Kịch bản nào có tổng rủi ro thấp nhất?",
+            "answer": (
+                f"{safest['scenario']} - {safest['scenario_name']} có tổng ba proxy rủi ro thấp nhất "
+                f"({safest['total_risk']:.2f}). Cách cộng này chỉ dùng để so sánh nhanh; ba rủi ro có đơn vị mô hình."
+            ),
+            "evidence": "Inequality_risk + Cyber_risk + Emission_risk.",
+        },
+        {
+            "code": "Kết luận tích hợp 4",
+            "question": "Đánh đổi chính sách chính là gì?",
+            "answer": (
+                "S3 nổi bật về GDP/AI nhưng cyber risk cao; S4 nổi bật về việc làm, vốn nhân lực và rủi ro thấp; "
+                "S5 đạt điểm tổng hợp cao nhất nhờ không cực đoan ở một chiều. Người dùng có thể thay budget để kiểm tra độ nhạy."
+            ),
+            "evidence": "Tabs 5 kịch bản, Lao động & AI và Rủi ro.",
+        },
+    ]
+    return programming, policy
 
 
 st.title("Bài 12 - Dashboard tích hợp AIDEOM-VN")
@@ -202,3 +303,15 @@ with tabs[5]:
         st.dataframe(sectors, use_container_width=True)
         st.write("Regions")
         st.dataframe(regions, use_container_width=True)
+
+programming_answers, discussion_answers = assignment_answers(
+    kpi_df, macro, sectors, regions
+)
+render_assignment_answers(
+    programming_answers,
+    discussion_answers,
+    note=(
+        "Bài 12 dùng approximation minh bạch từ tỷ trọng phân bổ để tổng hợp nhanh. "
+        "Các kết quả chi tiết và giả định solver phải được đọc tại Bài 1-11."
+    ),
+)

@@ -27,7 +27,13 @@ from src.bai04_region_lp import (
     solve_bai04_pulp,
 )
 from src.data_loader import load_regions
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -71,6 +77,109 @@ def policy_interpretation(result: dict[str, object], comparison: dict[str, objec
         f"Chi phí công bằng Z_no_fairness - Z_fairness là {cost_text}; đây là phần mục tiêu phải đánh đổi để thu hẹp khoảng cách số.",
         "Nếu lambda hiệu dụng nhỏ hơn lambda nhập vào, bộ ràng buộc gốc quá chặt so với trần 12.000 tỷ/vùng và D0 hiện tại.",
     ]
+
+
+def assignment_answers(result, other_result, solver, comparison):
+    """Answer Bài 4 questions and expose unsupported counterfactuals."""
+    region_totals = result["region_totals"].sort_values("region_total", ascending=False)
+    item_totals = result["item_totals"].sort_values("item_total", ascending=False)
+    top_region = region_totals.iloc[0]
+    top_item = item_totals.iloc[0]
+    objective = result.get("objective")
+    other_objective = other_result.get("objective")
+    objective_gap = (
+        None
+        if objective is None or other_objective is None
+        else abs(float(objective) - float(other_objective))
+    )
+    objective_text = "N/A" if objective is None else f"{float(objective):,.2f}"
+    other_objective_text = "N/A" if other_objective is None else f"{float(other_objective):,.2f}"
+    no_fairness = comparison["no_fairness"]
+    no_fair_top = no_fairness["region_totals"].sort_values("region_total", ascending=False).iloc[0]
+    fairness_cost = comparison.get("fairness_cost")
+    fairness_pct = (
+        None
+        if fairness_cost is None or no_fairness.get("objective") in (None, 0)
+        else fairness_cost / float(no_fairness["objective"]) * 100.0
+    )
+    ch_row = result["allocation_matrix"].loc["CH"].sort_values(ascending=False)
+
+    programming = [
+        {
+            "code": "Câu 4.4.1",
+            "question": "Giải PuLP và in ma trận phân bổ 6x4 cùng Z*.",
+            "answer": (
+                f"Solver đang chọn: {solver}; status={result['status']}; "
+                f"Z*={objective_text}. Ma trận 6x4 được hiển thị và có thể tải CSV."
+            ),
+            "evidence": "Bảng Ma trận phân bổ 6x4.",
+        },
+        {
+            "code": "Câu 4.4.2",
+            "question": "Đối chiếu PuLP và CVXPY.",
+            "answer": (
+                f"Objective solver còn lại là {other_objective_text}. "
+                + (
+                    f"Chênh lệch objective tuyệt đối là {objective_gap:,.4f}; hai lời giải tương đương về giá trị mục tiêu."
+                    if objective_gap is not None
+                    else "Không đủ hai nghiệm tối ưu để kết luận."
+                )
+            ),
+            "evidence": f"Solver so sánh: {'CVXPY' if solver == 'PuLP' else 'PuLP'}; note={other_result.get('note', '')}",
+        },
+        {
+            "code": "Câu 4.4.3",
+            "question": "Vùng và hạng mục nào nhận nhiều ngân sách nhất?",
+            "answer": (
+                f"{top_region['region_name']} nhận nhiều nhất: {top_region['region_total']:,.2f} tỷ VND. "
+                f"Hạng mục lớn nhất toàn quốc là {top_item['item_name']}: {top_item['item_total']:,.2f} tỷ VND."
+            ),
+            "evidence": "Bảng Tổng theo vùng, Tổng theo hạng mục và heatmap.",
+        },
+        {
+            "code": "Câu 4.4.4",
+            "question": "Tính chi phí kinh tế của ràng buộc công bằng.",
+            "answer": (
+                "Không tính được vì một trong hai nghiệm thiếu objective."
+                if fairness_cost is None
+                else f"Chi phí công bằng = Z không fairness - Z fairness = {fairness_cost:,.2f}, "
+                f"tương đương {fairness_pct:.2f}% objective không fairness."
+            ),
+            "evidence": "Bảng Fairness comparison.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 4.5a",
+            "question": "Nếu bỏ fairness, vốn chảy về vùng nào và vì sao?",
+            "answer": (
+                f"Trong nghiệm không fairness, vùng nhận nhiều nhất là {no_fair_top['region_name']} "
+                f"với {no_fair_top['region_total']:,.2f} tỷ VND. Vốn có xu hướng đi tới tổ hợp vùng-hạng mục có beta cao; "
+                "về dài hạn điều này có thể nới rộng khoảng cách năng lực số."
+            ),
+            "evidence": "comparison['no_fairness'].region_totals.",
+        },
+        {
+            "code": "Câu 4.5b",
+            "question": "Trần ngân sách mỗi vùng làm giảm Z* bao nhiêu phần trăm?",
+            "answer": (
+                "Phiên bản hiện tại chưa chạy phản thực riêng khi bỏ C3, nên không thể đưa ra phần trăm mà không bịa số. "
+                "Dashboard chỉ đo được chi phí của fairness C5. Cần thêm một solver scenario bỏ REGION_MAX để trả lời chính xác."
+            ),
+            "status": "Giới hạn mô hình hiện tại: chưa có counterfactual bỏ trần vùng.",
+        },
+        {
+            "code": "Câu 4.5c",
+            "question": "Tây Nguyên nên đầu tư AI hay H và I trước?",
+            "answer": (
+                f"Trong nghiệm hiện tại, Tây Nguyên ưu tiên {ITEM_NAMES[ch_row.index[0]]} "
+                f"({ch_row.iloc[0]:,.2f} tỷ), trong khi AI={result['allocation_matrix'].loc['CH', 'AI']:,.2f}. "
+                "Mô hình vì vậy không khuyến nghị dồn AI khi beta AI của vùng thấp."
+            ),
+            "evidence": "Dòng CH trong allocation_matrix.",
+        },
+    ]
+    return programming, policy
 
 
 regions_df = get_data()
@@ -212,3 +321,9 @@ with tab_compare:
 
 st.header("🏛️ 5. Diễn giải chính sách")
 policy_box(policy_interpretation(result, comparison), kind="success")
+other_solver = "CVXPY" if solver == "PuLP" else "PuLP"
+other_result = solve_cached(budget, fairness, lambda_, other_solver)
+programming_answers, discussion_answers = assignment_answers(
+    result, other_result, solver, comparison
+)
+render_assignment_answers(programming_answers, discussion_answers)

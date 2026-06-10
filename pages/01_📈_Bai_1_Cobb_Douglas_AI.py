@@ -11,7 +11,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.bai01_cobb_douglas import DEFAULT_PARAMS, MODULE_TITLE, module_status, run_bai01
 from src.data_loader import load_macro
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -63,6 +69,97 @@ def policy_interpretation(results: dict[str, object]) -> list[str]:
         f"Kịch bản đến 2030 cho GDP mô phỏng tăng khoảng {forecast_growth:.1f}% so với năm gốc, "
         "với giả định kinh tế số đạt 30%, AI đạt 100 nghìn doanh nghiệp và H đạt 35%.",
     ]
+
+
+def assignment_answers(results: dict[str, object]):
+    """Answer the programming and policy questions stated in Bài 1."""
+    result_df = results["result_df"]
+    contribution_df = results["contribution_df"]
+    forecast_df = results["forecast_2030_df"]
+    mape = float(results["mape"])
+
+    first_tfp = float(result_df["TFP_A"].iloc[0])
+    last_tfp = float(result_df["TFP_A"].iloc[-1])
+    tfp_change = (last_tfp / first_tfp - 1.0) * 100.0
+    max_error = result_df.loc[result_df["error_pct"].abs().idxmax()]
+    contribution_text = ", ".join(
+        f"{row.factor}={row.avg_contribution_pct_points:.2f} điểm %"
+        for row in contribution_df.itertuples()
+    )
+    new_factors = contribution_df[contribution_df["factor"].isin(["D", "AI", "H"])]
+    leading_new = new_factors.loc[new_factors["avg_contribution_pct_points"].idxmax()]
+    target_2030 = forecast_df.loc[forecast_df["year"] == 2030].iloc[0]
+
+    programming = [
+        {
+            "code": "Câu 1.4.1",
+            "question": "Ước lượng TFP A_t từng năm và bình luận xu hướng.",
+            "answer": (
+                f"TFP tăng từ {first_tfp:.4f} năm {int(result_df['year'].iloc[0])} "
+                f"lên {last_tfp:.4f} năm {int(result_df['year'].iloc[-1])}, "
+                f"tương đương tăng {tfp_change:.1f}% trong cả giai đoạn. "
+                "Dù có năm giảm nhẹ, xu hướng cuối kỳ là đi lên."
+            ),
+            "evidence": "Bảng Kết quả fit, cột TFP_A và biểu đồ TFP theo năm.",
+        },
+        {
+            "code": "Câu 1.4.2",
+            "question": "Tính GDP dự báo từ A trung bình và báo cáo MAPE.",
+            "answer": (
+                f"MAPE của mô hình là {mape:.2f}%. Sai số tuyệt đối lớn nhất xuất hiện "
+                f"năm {int(max_error['year'])}, bằng {abs(float(max_error['error_pct'])):.2f}%. "
+                "Vì vậy mô hình phù hợp cho mô phỏng định hướng, nhưng không nên coi là dự báo điểm chính thức."
+            ),
+            "evidence": "Bảng Kết quả fit, các cột Y_actual, Y_hat, error_pct.",
+        },
+        {
+            "code": "Câu 1.4.3",
+            "question": "Phân rã đóng góp tăng trưởng của K, L, D, AI, H và TFP.",
+            "answer": f"Đóng góp bình quân theo output hiện tại: {contribution_text}.",
+            "evidence": "Bảng Đóng góp và biểu đồ Đóng góp tăng trưởng bình quân.",
+        },
+        {
+            "code": "Câu 1.4.4",
+            "question": "Mô phỏng kịch bản D=30%, AI=100 nghìn DN, H=35% đến 2030.",
+            "answer": (
+                f"GDP mô phỏng năm 2030 là {float(target_2030['Y_forecast']):,.1f}. "
+                f"Tại năm đích, TFP={float(target_2030['TFP_A']):.4f}, "
+                f"K={float(target_2030['K']):,.1f}, L={float(target_2030['L']):,.1f}."
+            ),
+            "evidence": "Bảng Forecast 2030, dòng năm 2030.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 1.5a",
+            "question": "TFP tăng hay giảm và nói gì về chất lượng tăng trưởng?",
+            "answer": (
+                f"TFP cuối kỳ cao hơn đầu kỳ {tfp_change:.1f}%, nên mô hình ghi nhận chất lượng tăng trưởng "
+                "được cải thiện về cuối giai đoạn. Tuy nhiên TFP là phần dư của mô hình và còn phụ thuộc cách đo K, L, D, AI, H."
+            ),
+            "evidence": "Chuỗi TFP_A 2020-2025.",
+        },
+        {
+            "code": "Câu 1.5b",
+            "question": "Trong D, AI, H, yếu tố nào đóng góp nhiều nhất?",
+            "answer": (
+                f"{leading_new['factor']} có đóng góp bình quân lớn nhất trong ba yếu tố mới, "
+                f"bằng {leading_new['avg_contribution_pct_points']:.2f} điểm % log/năm theo bộ dữ liệu và hệ số hiện tại."
+            ),
+            "evidence": "Lọc ba dòng D, AI, H trong contribution_df.",
+        },
+        {
+            "code": "Câu 1.5c",
+            "question": "Mục tiêu kinh tế số 30% GDP năm 2030 có khả thi không?",
+            "answer": (
+                "Mô hình cho thấy kịch bản D=30% tạo được một quỹ đạo GDP dương, nhưng không tự chứng minh tính khả thi "
+                "thể chế hay ngân sách vì D=30% là giả định đầu vào. Cần bổ sung ràng buộc vốn đầu tư, nhân lực, hạ tầng "
+                "dữ liệu, an ninh mạng và tốc độ hấp thụ của doanh nghiệp."
+            ),
+            "evidence": "D=30% được đặt ngoại sinh trong forecast_2030_df.",
+        },
+    ]
+    return programming, policy
 
 
 macro = get_data()
@@ -234,3 +331,5 @@ if bai01_results is None:
     policy_box("Diễn giải tự động sẽ xuất hiện sau khi chạy mô hình.")
 else:
     policy_box(policy_interpretation(bai01_results), kind="success")
+    programming_answers, discussion_answers = assignment_answers(bai01_results)
+    render_assignment_answers(programming_answers, discussion_answers)

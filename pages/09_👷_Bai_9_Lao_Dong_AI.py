@@ -17,7 +17,13 @@ from src.bai09_labor_ai import (
     solve_bai09,
     stress_test_risk,
 )
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -57,6 +63,99 @@ def policy_interpretation(result: dict[str, object]) -> list[str]:
     ]
 
 
+def assignment_answers(result, threshold_df, capped_result, cap_displaced):
+    """Answer labor-allocation and social-safeguard questions."""
+    df = result["allocation_df"]
+    threshold = threshold_df.iloc[0]
+    finance = df[df["sector"].str.contains("Tài chính", case=False)].iloc[0]
+    agriculture = df[df["sector"].str.contains("Nông", case=False)].iloc[0]
+    top_training = df.sort_values("x_H", ascending=False).iloc[0]
+    total_net = float(df["NetJob"].sum())
+    constraints_ok = bool(
+        (df["NetJob"] >= -1e-6).all()
+        and (df["DisplacedJob"] <= df["RetrainingCapacity"] + 1e-6).all()
+    )
+
+    programming = [
+        {
+            "code": "Câu 9.4.1",
+            "question": "Giải phân bổ x_AI, x_H và tính NetJob từng ngành.",
+            "answer": (
+                f"Status={result['status']}; tổng NetJob={total_net:,.2f}; tổng phân bổ="
+                f"{df['total_allocation'].sum():,.2f}. Các ràng buộc NetJob>=0 và Displaced<=RetrainCap "
+                f"{'đều thỏa' if constraints_ok else 'chưa thỏa'}."
+            ),
+            "evidence": "Tabs Phân bổ và Việc làm.",
+        },
+        {
+            "code": "Câu 9.4.2",
+            "question": "Ngưỡng đào tạo ngành chế biến chế tạo khi đầu tư AI tối đa.",
+            "answer": (
+                f"Với x_AI={threshold['x_AI']:,.2f}, x_H tối thiểu theo ràng buộc đào tạo lại là "
+                f"{threshold['minimum_x_H_required']:,.2f}; displaced jobs={threshold['displaced_job']:,.2f}."
+            ),
+            "evidence": "Bảng Ngưỡng đào tạo lại ngành chế biến chế tạo.",
+        },
+        {
+            "code": "Câu 9.4.3",
+            "question": "Mô phỏng nhóm dễ tổn thương và vẽ Sankey dịch chuyển lao động.",
+            "answer": (
+                "Dashboard đã tính NewJob, UpgradeJob, DisplacedJob và NetJob cho các ngành 1, 3, 4, "
+                "nhưng chưa dựng Sankey/swimming lane riêng cho luồng lao động."
+            ),
+            "status": "Thiếu trực quan Sankey theo đúng phần mở rộng của đề.",
+        },
+        {
+            "code": "Câu 9.4.4",
+            "question": "Thêm ràng buộc không ngành nào mất quá 5% lao động.",
+            "answer": (
+                f"Kịch bản có cap 5% cho status={capped_result['status']} và objective={capped_result['objective']}. "
+                f"Công tắc hiện tại đang {'bật' if cap_displaced else 'tắt'}."
+            ),
+            "evidence": "Kết quả solve_bai09 với max_displaced_share=0.05.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 9.5a",
+            "question": "Ngành nào cần đào tạo lại nhiều nhất?",
+            "answer": (
+                f"{top_training['sector']} có x_H cao nhất, bằng {top_training['x_H']:,.2f}. "
+                "Đây là kết quả tối ưu theo hệ số mô hình; cần đối chiếu dữ liệu kỹ năng thực tế trước khi kết luận chính sách."
+            ),
+            "evidence": "Sắp xếp allocation_df theo x_H.",
+        },
+        {
+            "code": "Câu 9.5b",
+            "question": "Chiến lược cho Tài chính–Ngân hàng khi rủi ro thay thế cao.",
+            "answer": (
+                f"Nghiệm hiện tại phân bổ x_AI={finance['x_AI']:,.2f}, x_H={finance['x_H']:,.2f}, "
+                f"NetJob={finance['NetJob']:,.2f}. Mô hình yêu cầu mọi tự động hóa phải đi cùng năng lực đào tạo lại đủ lớn."
+            ),
+            "evidence": "Dòng Tài chính-Ngân hàng trong allocation_df.",
+        },
+        {
+            "code": "Câu 9.5c",
+            "question": "Có nên đầu tư AI vào Nông-Lâm-Thủy sản?",
+            "answer": (
+                f"Nghiệm hiện tại chọn x_AI={agriculture['x_AI']:,.2f}, x_H={agriculture['x_H']:,.2f} cho ngành này. "
+                "Nếu bằng 0, đó là kết quả của hiệu suất biên tương đối; không đồng nghĩa ngành không cần chính sách số bao trùm."
+            ),
+            "evidence": "Dòng Nông-Lâm-Thủy sản trong allocation_df.",
+        },
+        {
+            "code": "Câu 9.5d",
+            "question": "Tự động hóa không vượt năng lực đào tạo lại được biểu diễn thế nào?",
+            "answer": (
+                "Ràng buộc trực tiếp là DisplacedJob_i <= RetrainingCapacity_i. Có thể bổ sung cap 5% lao động, "
+                "sàn x_H theo ngành dễ tổn thương và ngân sách hỗ trợ thu nhập chuyển tiếp."
+            ),
+            "evidence": "Hệ ràng buộc trong mô hình và tùy chọn max_displaced_share.",
+        },
+    ]
+    return programming, policy
+
+
 labor_df = get_labor_data()
 
 st.title(MODULE_TITLE)
@@ -94,13 +193,14 @@ st.subheader("Dữ liệu 8 ngành")
 st.dataframe(labor_df, use_container_width=True)
 download_dataframe_button(labor_df, "bai_9_labor_dataset.csv")
 
-threshold_df = manufacturing_training_threshold(5000)
-with st.expander("Ngưỡng đào tạo lại ngành chế biến chế tạo khi x_AI=5000"):
+threshold_df = manufacturing_training_threshold(budget)
+with st.expander(f"Ngưỡng đào tạo lại ngành chế biến chế tạo khi x_AI={budget:,.0f}"):
     st.dataframe(threshold_df, use_container_width=True)
     download_dataframe_button(threshold_df, "bai_9_manufacturing_threshold.csv")
 
 st.header("📊 4. Kết quả")
 result = solve_cached(budget, risk_multiplier, cap_displaced)
+capped_result = solve_cached(budget, risk_multiplier, True)
 allocation_df = result["allocation_df"]
 
 render_kpi_cards(
@@ -169,3 +269,7 @@ with chart_cols[1]:
 
 st.header("🏛️ 5. Diễn giải chính sách")
 policy_box(policy_interpretation(result), kind="success")
+programming_answers, discussion_answers = assignment_answers(
+    result, threshold_df, capped_result, cap_displaced
+)
+render_assignment_answers(programming_answers, discussion_answers)

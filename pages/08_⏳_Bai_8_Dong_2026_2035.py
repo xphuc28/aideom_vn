@@ -16,7 +16,13 @@ from src.bai08_dynamic import (
     shock_2028,
 )
 from src.data_loader import load_macro
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -54,6 +60,94 @@ def policy_interpretation(summary_df, optimized_df) -> list[str]:
         f"Đến 2035, quỹ đạo tối ưu đạt K={final['K']:.1f}, D={final['D']:.2f}, AI={final['AI']:.2f}, H={final['H']:.2f}.",
         "Nếu bật shock 2028, chính sách nên giữ nhịp đầu tư ổn định thay vì phản ứng cực đoan một năm, vì mục tiêu là welfare chiết khấu dài hạn.",
     ]
+
+
+def assignment_answers(optimized, trajectory_df, policy_df, summary_df, use_shock, rho):
+    """Answer the dynamic-optimization requirements for the active run."""
+    optimized_summary = summary_df[summary_df["strategy"] == "optimized"].iloc[0]
+    equal_summary = summary_df[summary_df["strategy"] == "equal investment"].iloc[0]
+    front_summary = summary_df[summary_df["strategy"] == "front-load"].iloc[0]
+    early = policy_df.head(3)[["share_K", "share_D", "share_AI", "share_H"]].mean()
+    late = policy_df.tail(3)[["share_K", "share_D", "share_AI", "share_H"]].mean()
+    ai_h_ratio = (policy_df["share_AI"] / policy_df["share_H"].replace(0, float("nan"))).dropna()
+    shock_answer = (
+        "Shock 2028 đang bật. Quỹ đạo hiển thị trực tiếp Y, C và tỷ trọng đầu tư sau cú sốc; "
+        f"Y_2028={trajectory_df.loc[trajectory_df['year'] == 2028, 'Y'].iloc[0]:.2f}, "
+        f"Y_2029={trajectory_df.loc[trajectory_df['year'] == 2029, 'Y'].iloc[0]:.2f}."
+        if use_shock
+        else "Shock 2028 chưa bật trong lần chạy này. Bật công tắc và chạy lại để câu trả lời dùng quỹ đạo giảm Y năm 2028."
+    )
+
+    programming = [
+        {
+            "code": "Câu 8.3.1",
+            "question": "Giải bài toán phi tuyến bằng SLSQP hoặc CVXPY.",
+            "answer": (
+                f"Dashboard dùng SLSQP; status={optimized['status']}, welfare={optimized['welfare']:.4f}. "
+                f"Thông báo solver: {optimized['note']}"
+            ),
+            "evidence": "KPI Status/Welfare và note của optimize_dynamic.",
+        },
+        {
+            "code": "Câu 8.3.2",
+            "question": "Vẽ quỹ đạo K, D, AI, H, Y, C giai đoạn 2026-2035.",
+            "answer": (
+                f"Quỹ đạo gồm {len(trajectory_df)} năm. Năm 2035: K={trajectory_df['K'].iloc[-1]:,.2f}, "
+                f"D={trajectory_df['D'].iloc[-1]:.2f}, AI={trajectory_df['AI'].iloc[-1]:.2f}, "
+                f"H={trajectory_df['H'].iloc[-1]:.2f}, Y={trajectory_df['Y'].iloc[-1]:.2f}, "
+                f"C={trajectory_df['C'].iloc[-1]:.2f}."
+            ),
+            "evidence": "Biểu đồ quỹ đạo và tab Trajectory.",
+        },
+        {
+            "code": "Câu 8.3.3",
+            "question": "Phân tích cú sốc 2028 làm Y giảm 8%.",
+            "answer": shock_answer,
+            "evidence": "Công tắc Shock 2028 và trajectory_df.",
+            "status": "Cần bật shock để có kết quả phản thực." if not use_shock else "Đã trả lời",
+        },
+        {
+            "code": "Câu 8.3.4",
+            "question": "So sánh equal investment, front-load và optimized.",
+            "answer": (
+                f"Welfare: optimized={optimized_summary['welfare']:.4f}, "
+                f"equal={equal_summary['welfare']:.4f}, front-load={front_summary['welfare']:.4f}. "
+                f"Chiến lược cao nhất là {summary_df.iloc[0]['strategy']}."
+            ),
+            "evidence": "Tab Strategy summary.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 8.4a",
+            "question": "Quỹ đạo tối ưu front-loaded hay back-loaded?",
+            "answer": (
+                f"Ba năm đầu phân bổ bình quân K/D/AI/H = {early.to_dict()}, ba năm cuối = {late.to_dict()}. "
+                "So sánh hai vector cho biết yếu tố nào được dồn sớm hay muộn; trong nghiệm hiện tại D được ưu tiên mạnh ở đầu kỳ."
+            ),
+            "evidence": "policy_df, trung bình 3 năm đầu và 3 năm cuối.",
+        },
+        {
+            "code": "Câu 8.4b",
+            "question": "Tỷ lệ đầu tư AI/H có ổn định không?",
+            "answer": (
+                f"Tỷ lệ share_AI/share_H dao động từ {ai_h_ratio.min():.2f} đến {ai_h_ratio.max():.2f}. "
+                "Nếu tỷ lệ biến động, mô hình không ủng hộ một tỷ lệ cố định; đào tạo và AI cần được điều chỉnh đồng thời theo trạng thái."
+            ),
+            "evidence": "Các cột share_AI và share_H trong policy_df.",
+        },
+        {
+            "code": "Câu 8.4c",
+            "question": "Nếu rho giảm từ 0,97 xuống 0,90 thì kết quả thay đổi thế nào?",
+            "answer": (
+                f"Lần chạy hiện tại dùng rho={rho:.3f}. Dashboard cho phép đặt rho=0,90 và chạy lại, "
+                "nhưng không tự chạy song song hai nghiệm nên chưa đưa ra chênh lệch số khi chưa thực hiện lần đối chứng. "
+                "Về cơ chế, rho thấp làm giảm trọng số lợi ích xa trong tương lai."
+            ),
+            "status": "Cần chạy lại với rho=0,90 để định lượng chênh lệch.",
+        },
+    ]
+    return programming, policy
 
 
 macro = get_data()
@@ -174,6 +268,10 @@ if st.button("Chạy tối ưu động 2026-2035", type="primary"):
 
     st.header("🏛️ 5. Diễn giải chính sách")
     policy_box(policy_interpretation(summary_df, trajectory_df), kind="success")
+    programming_answers, discussion_answers = assignment_answers(
+        optimized, trajectory_df, policy_df, summary_df, use_shock, rho
+    )
+    render_assignment_answers(programming_answers, discussion_answers)
 else:
     st.info("Nhấn **Chạy tối ưu động 2026-2035** để tối ưu policy shares và so sánh ba chiến lược.")
     st.header("🏛️ 5. Diễn giải chính sách")

@@ -21,7 +21,13 @@ from src.bai10_stochastic import (
     solve_stochastic_pulp,
 )
 from src.data_loader import load_macro
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -92,6 +98,89 @@ def policy_interpretation(result: dict[str, object], deterministic_df: pd.DataFr
         f"Kịch bản deterministic có objective cao nhất là {best_det['scenario']} với {best_det['objective']:,.1f}.",
         f"VSS={vss:,.2f} và EVPI={evpi:,.2f}; nếu hai giá trị thấp, quyết định first-stage khá ổn định trước bất định trong bộ hệ số này.",
     ]
+
+
+def assignment_answers(result, deterministic_df, expected_result, vss_evpi_df, robust_result):
+    """Answer stochastic-programming requirements from computed scenarios."""
+    first = result["first_stage_df"]
+    expected_first = expected_result["first_stage_df"]
+    first_map = dict(zip(first["item"], first["allocation"]))
+    expected_map = dict(zip(expected_first["item"], expected_first["allocation"]))
+    metrics = dict(zip(vss_evpi_df["metric"], vss_evpi_df["value"]))
+    robust_first = robust_result["first_stage_df"]
+    robust_map = dict(zip(robust_first["item"], robust_first["allocation"]))
+
+    programming = [
+        {
+            "code": "Câu 10.5.1",
+            "question": "Mô hình hóa first-stage/second-stage và báo cáo quyết định tối ưu.",
+            "answer": (
+                f"Phiên bản deploy dùng PuLP/CBC hoặc SciPy fallback thay cho Pyomo/GLPK để bảo đảm chạy được. "
+                f"Status={result['status']}, objective={result['objective']}. First-stage: "
+                + ", ".join(f"{item}={value:,.0f}" for item, value in first_map.items())
+                + "."
+            ),
+            "evidence": "Bảng First-stage và Second-stage recourse.",
+        },
+        {
+            "code": "Câu 10.5.2",
+            "question": "So sánh deterministic, expected-value và stochastic SP.",
+            "answer": (
+                f"Expected-value first-stage: {expected_map}. SP first-stage: {first_map}. "
+                f"Objective deterministic theo bốn kịch bản nằm từ {deterministic_df['objective'].min():,.1f} "
+                f"đến {deterministic_df['objective'].max():,.1f}."
+            ),
+            "evidence": "Bảng deterministic từng kịch bản và expected-value result.",
+        },
+        {
+            "code": "Câu 10.5.3",
+            "question": "Tính VSS và EVPI.",
+            "answer": (
+                f"VSS={metrics.get('VSS', float('nan')):,.2f}; EVPI={metrics.get('EVPI', float('nan')):,.2f}. "
+                "VSS đo lợi ích của quyết định có xét bất định; EVPI đo giá trị tối đa của thông tin hoàn hảo."
+            ),
+            "evidence": "Bảng Expected value, VSS và EVPI.",
+        },
+        {
+            "code": "Câu 10.5.4",
+            "question": "Robust minimax regret và so sánh với SP.",
+            "answer": (
+                f"Robust first-stage: {robust_map}. Giá trị max regret/objective được báo cáo là "
+                f"{robust_result.get('max_regret', robust_result.get('objective'))}."
+            ),
+            "evidence": robust_result.get("note", ""),
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 10.6a",
+            "question": "SP đầu tư H nhiều hay ít hơn lời giải xác định/kỳ vọng?",
+            "answer": (
+                f"SP phân bổ H={first_map.get('H', 0):,.0f}; expected-value phân bổ H={expected_map.get('H', 0):,.0f}. "
+                "Trong bộ hệ số hiện tại, chênh lệch này cho biết nhân lực có được dùng như lớp đệm trước bất định hay không."
+            ),
+            "evidence": "So sánh cột allocation của first-stage_df.",
+        },
+        {
+            "code": "Câu 10.6b",
+            "question": "VSS dương nói lên điều gì?",
+            "answer": (
+                f"VSS hiện bằng {metrics.get('VSS', 0):,.2f}. Nếu bằng 0, bộ kịch bản hiện tại chưa tạo lợi ích đo được "
+                "từ việc đổi first-stage so với expected-value; điều đó không có nghĩa tư duy xác suất vô giá trị trong mọi dữ liệu."
+            ),
+            "evidence": "Metric VSS.",
+        },
+        {
+            "code": "Câu 10.6c",
+            "question": "Có đang dưới đầu tư nhân lực số như một hàng hóa bảo hiểm?",
+            "answer": (
+                "Mô hình hiện chỉ cho bằng chứng nội bộ qua mức H và recourse trong kịch bản xấu; không đủ dữ liệu để kết luận "
+                "Việt Nam thực tế đang dưới đầu tư. Có thể dùng sensitivity beta_H và xác suất shock để kiểm tra giả thuyết này."
+            ),
+            "evidence": "Giới hạn phạm vi mô hình kịch bản.",
+        },
+    ]
+    return programming, policy
 
 
 macro, scenarios = get_data()
@@ -207,6 +296,14 @@ if st.button("Chạy quy hoạch ngẫu nhiên hai giai đoạn", type="primary"
 
     st.header("🏛️ 5. Diễn giải chính sách")
     policy_box(policy_interpretation(result, deterministic_df, vss_evpi_df), kind="success")
+    programming_answers, discussion_answers = assignment_answers(
+        result, deterministic_df, expected_result, vss_evpi_df, robust_result
+    )
+    render_assignment_answers(
+        programming_answers,
+        discussion_answers,
+        note="Đề gợi ý Pyomo; bản deploy dùng PuLP mặc định để không phụ thuộc GLPK bên ngoài.",
+    )
 else:
     st.info("Nhấn **Chạy quy hoạch ngẫu nhiên hai giai đoạn** để giải stochastic program, deterministic scenarios và VSS/EVPI.")
     st.header("🏛️ 5. Diễn giải chính sách")

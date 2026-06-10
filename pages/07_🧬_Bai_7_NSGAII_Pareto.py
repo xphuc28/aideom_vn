@@ -12,7 +12,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.bai04_region_lp import ITEMS, ITEM_NAMES, REGIONS, REGION_NAMES
 from src.bai07_pareto import MODULE_TITLE, module_status, random_feasible_search, run_nsga2
 from src.data_loader import load_regions
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -71,6 +77,91 @@ def policy_interpretation(pareto_df: pd.DataFrame, summary_df: pd.DataFrame) -> 
         f"Đổi lại, nghiệm thỏa hiệp giảm emission khoảng {emission_gain:,.1f} và giảm net cyber risk khoảng {risk_gain:,.1f}.",
         "Nếu mục tiêu là bứt tốc, chọn nghiệm tăng trưởng cao nhất; nếu cần cân bằng phát triển, phát thải, rủi ro và công bằng vùng, chọn nghiệm thỏa hiệp.",
     ]
+
+
+def assignment_answers(result, pareto_df, summary_df):
+    """Answer Pareto implementation and trade-off questions."""
+    growth = summary_df[summary_df["scenario"] == "Tăng trưởng cao nhất"].iloc[0]
+    compromise = summary_df[summary_df["scenario"] == "Nghiệm thỏa hiệp"].iloc[0]
+    gdp_cost_pct = (growth["gdp_gain"] - compromise["gdp_gain"]) / growth["gdp_gain"] * 100.0
+    inequality_improvement = growth["inequality"] - compromise["inequality"]
+    emission_improvement_pct = (
+        (growth["emission"] - compromise["emission"]) / growth["emission"] * 100.0
+        if growth["emission"]
+        else 0.0
+    )
+    corr = pareto_df[["gdp_gain", "inequality"]].corr().iloc[0, 1]
+
+    programming = [
+        {
+            "code": "Câu 7.4.1",
+            "question": "Chạy NSGA-II với 24 biến và 4 mục tiêu.",
+            "answer": (
+                f"Phương pháp thực tế được dùng là {result['method']}; thu được {len(pareto_df)} nghiệm Pareto. "
+                "Nếu pymoo lỗi/không khả dụng, hệ thống tự chuyển sang random feasible search và ghi rõ trong note."
+            ),
+            "evidence": result.get("note", ""),
+        },
+        {
+            "code": "Câu 7.4.2",
+            "question": "Trích xuất Pareto set, scatter 3D và parallel coordinates.",
+            "answer": (
+                f"Pareto dataframe có {len(pareto_df)} dòng; GDP gain nằm trong khoảng "
+                f"{pareto_df['gdp_gain'].min():,.1f}–{pareto_df['gdp_gain'].max():,.1f}."
+            ),
+            "evidence": "Biểu đồ Pareto 3D, parallel coordinates và bảng Pareto dataframe.",
+        },
+        {
+            "code": "Câu 7.4.3",
+            "question": "Chọn nghiệm thỏa hiệp bằng TOPSIS trọng số 0,40/0,25/0,20/0,15.",
+            "answer": (
+                f"Nghiệm thỏa hiệp có GDP gain={compromise['gdp_gain']:,.2f}, "
+                f"inequality={compromise['inequality']:,.2f}, emission={compromise['emission']:,.2f}, "
+                f"net cyber risk={compromise['net_cyber_risk']:,.2f}."
+            ),
+            "evidence": "Bảng Nghiệm thỏa hiệp TOPSIS.",
+        },
+        {
+            "code": "Câu 7.4.4",
+            "question": "Định lượng chi phí cơ hội giữa tăng trưởng, bao trùm và môi trường.",
+            "answer": (
+                f"Nghiệm thỏa hiệp hy sinh {gdp_cost_pct:.2f}% GDP gain so với nghiệm tăng trưởng cao nhất; "
+                f"đổi lại inequality giảm {inequality_improvement:,.2f} đơn vị và emission giảm "
+                f"{emission_improvement_pct:.2f}%."
+            ),
+            "evidence": "Bảng So sánh nghiệm tăng trưởng cao nhất với nghiệm thỏa hiệp.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 7.5a",
+            "question": "Đánh đổi tăng trưởng–bao trùm có rõ ràng không?",
+            "answer": (
+                f"Hệ số tương quan trong Pareto set giữa GDP gain và inequality là {corr:.3f}. "
+                "Cùng với chênh lệch hai nghiệm đại diện, kết quả cho thấy tăng trưởng cao hơn có thể đi kèm phân bổ vùng kém đều hơn."
+            ),
+            "evidence": "Tương quan trên pareto_df và summary_df.",
+        },
+        {
+            "code": "Câu 7.5b",
+            "question": "Có nên điều chỉnh trọng số để phản ánh COP26 và chiến lược AI?",
+            "answer": (
+                "Bộ 0,40/0,25/0,20/0,15 ưu tiên tăng trưởng. Nếu nhấn mạnh COP26, nên tăng trọng số emission; "
+                "nếu nhấn mạnh AI an toàn, tăng trọng số cyber risk. Dashboard nên công bố phân tích độ nhạy trọng số trước khi chọn nghiệm."
+            ),
+            "evidence": "Các mục tiêu Pareto phản ứng khác nhau theo trọng số TOPSIS.",
+        },
+        {
+            "code": "Câu 7.5c",
+            "question": "NSGA-II khác LP đơn mục tiêu và có thay quyết định chính trị không?",
+            "answer": (
+                "NSGA-II trả về tập phương án không bị trội thay vì một nghiệm duy nhất, giúp nhìn rõ đánh đổi phi tuyến. "
+                "Nó không quyết định trọng số xã hội, nên không thể thay thế lựa chọn chính trị và tham vấn công chúng."
+            ),
+            "evidence": f"Tập kết quả gồm {len(pareto_df)} phương án thay vì một nghiệm.",
+        },
+    ]
+    return programming, policy
 
 
 regions = get_data()
@@ -170,6 +261,10 @@ if st.button("Chạy tối ưu Pareto Bài 7", type="primary"):
 
         st.header("🏛️ 5. Diễn giải chính sách")
         policy_box(policy_interpretation(pareto_df, summary_df), kind="success")
+        programming_answers, discussion_answers = assignment_answers(
+            result, pareto_df, summary_df
+        )
+        render_assignment_answers(programming_answers, discussion_answers)
 else:
     st.info("Nhấn **Chạy tối ưu Pareto Bài 7** để sinh tập Pareto bằng NSGA-II hoặc random feasible fallback.")
     st.header("🏛️ 5. Diễn giải chính sách")

@@ -19,7 +19,13 @@ from src.bai11_q_learning import (
     train_q_learning,
 )
 from src.data_loader import load_macro
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -70,6 +76,99 @@ def policy_interpretation(sample_df: pd.DataFrame, comparison_df: pd.DataFrame) 
         f"Khi nền kinh tế đã mạnh và AI cao, agent khuyến nghị {advanced_action['action_name']}, phản ánh khả năng thích nghi theo trạng thái.",
         "Q-learning không đưa ra một công thức chính sách cố định; nó chọn hành động theo trạng thái vĩ mô, năng lực số, năng lực AI và rủi ro thất nghiệp.",
     ]
+
+
+def assignment_answers(result, sample_df, comparison_df, episodes, alpha, gamma):
+    """Answer Q-learning implementation and policy questions."""
+    Q = result["Q"]
+    crisis = sample_df[sample_df["sample_state"] == "GDP low, D low, AI low, U high"].iloc[0]
+    advanced = sample_df[sample_df["sample_state"] == "GDP high, D high, AI high, U low"].iloc[0]
+    learned = comparison_df[comparison_df["policy_type"] == "learned"].iloc[0]
+    baseline_best = (
+        comparison_df[comparison_df["policy_type"] != "learned"]
+        .sort_values("mean_reward", ascending=False)
+        .iloc[0]
+    )
+
+    programming = [
+        {
+            "code": "Câu 11.3.1",
+            "question": "Cài đặt môi trường MDP với 81 trạng thái và 5 hành động.",
+            "answer": (
+                f"Môi trường custom Python có state 4 chiều, mỗi chiều 3 mức; Q shape={Q.shape}. "
+                "Một episode trong source hiện dùng horizon=12, không phải 10 như gợi ý PDF."
+            ),
+            "evidence": "VietnamEconomyEnv và KPI Q shape.",
+            "status": "Khác PDF: môi trường custom, horizon 12.",
+        },
+        {
+            "code": "Câu 11.3.2",
+            "question": "Huấn luyện Q-learning epsilon-greedy.",
+            "answer": (
+                f"Đã huấn luyện {episodes} episodes với alpha={alpha:.2f}, gamma={gamma:.2f}; "
+                f"rewards có {len(result['rewards'])} phần tử. Source hiện giảm epsilon từ 0,30 xuống 0,03, "
+                "khác đề xuất 1,00 xuống 0,05."
+            ),
+            "evidence": "Learning curve và train_q_learning.",
+            "status": "Tham số epsilon hiện chưa trùng hoàn toàn PDF.",
+        },
+        {
+            "code": "Câu 11.3.3",
+            "question": "Trích xuất chính sách cho 5 trạng thái mẫu.",
+            "answer": "; ".join(
+                f"{row.sample_state}: {row.action_name}" for row in sample_df.itertuples()
+            )
+            + ".",
+            "evidence": "Bảng Policy cho 5 trạng thái mẫu.",
+        },
+        {
+            "code": "Câu 11.3.4",
+            "question": "So sánh learned policy với always-a1, always-a3 và random.",
+            "answer": (
+                f"Learned mean reward={learned['mean_reward']:.3f}; baseline tốt nhất là "
+                f"{baseline_best['policy_type']} với {baseline_best['mean_reward']:.3f}. "
+                f"Chênh lệch learned - baseline tốt nhất = "
+                f"{learned['mean_reward'] - baseline_best['mean_reward']:+.3f}."
+            ),
+            "evidence": "Bảng và biểu đồ Mean reward theo policy.",
+        },
+        {
+            "code": "Câu 11.3.5",
+            "question": "Mở rộng Deep Q-Network.",
+            "answer": "Phiên bản hiện tại chỉ triển khai Q-learning tabular; chưa huấn luyện DQN nên không có số liệu cải thiện.",
+            "status": "Phần mở rộng DQN chưa triển khai.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 11.4a",
+            "question": "GDP thấp, D thấp, thất nghiệp cao thì chọn gì?",
+            "answer": (
+                f"Agent chọn {crisis['action_name']} với phân bổ {crisis['allocation']}. "
+                "Có thể xem đây là quick win nếu gói ưu tiên cân bằng phục hồi GDP, số hóa và giảm rủi ro lao động."
+            ),
+            "evidence": "Dòng GDP low, D low, AI low, U high.",
+        },
+        {
+            "code": "Câu 11.4b",
+            "question": "GDP cao, AI cao, thất nghiệp thấp thì chọn gì?",
+            "answer": (
+                f"Agent chọn {advanced['action_name']} với phân bổ {advanced['allocation']}. "
+                "Tính phù hợp với consolidation cần được đánh giá bằng reward và rủi ro, không chỉ tên hành động."
+            ),
+            "evidence": "Dòng GDP high, D high, AI high, U low.",
+        },
+        {
+            "code": "Câu 11.4c",
+            "question": "Tích hợp policy AI mà không thay thế quyết định chính trị-xã hội.",
+            "answer": (
+                "Dùng policy như khuyến nghị có giải thích: công bố trạng thái đầu vào, Q-value, phương án thay thế và rủi ro; "
+                "sau đó để hội đồng chính sách phê duyệt, có quyền override và lưu vết lý do."
+            ),
+            "evidence": "Dashboard hiển thị action, allocation, q_value và baseline comparison.",
+        },
+    ]
+    return programming, policy
 
 
 macro = get_data()
@@ -178,6 +277,17 @@ if st.button("Huấn luyện Q-learning", type="primary"):
 
     st.header("🏛️ 5. Diễn giải chính sách")
     policy_box(policy_interpretation(sample_df, comparison_df), kind="success")
+    programming_answers, discussion_answers = assignment_answers(
+        result, sample_df, comparison_df, episodes, alpha, gamma
+    )
+    render_assignment_answers(
+        programming_answers,
+        discussion_answers,
+        note=(
+            "Dashboard trả lời theo implementation hiện tại và đánh dấu rõ các điểm khác PDF "
+            "(horizon, epsilon schedule, DQN)."
+        ),
+    )
 else:
     st.info("Nhấn **Huấn luyện Q-learning** để huấn luyện và xem policy thích nghi.")
     st.header("🏛️ 5. Diễn giải chính sách")

@@ -21,7 +21,13 @@ from src.bai06_topsis import (
     topsis,
 )
 from src.data_loader import load_regions
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -96,6 +102,99 @@ def policy_interpretation(expert_ranking: pd.DataFrame, entropy_ranking: pd.Data
         "Vùng top-1 nên đóng vai trò hạt nhân AI; vùng top-2/top-3 phù hợp làm cực tăng trưởng bổ trợ và lan tỏa.",
         "Các vùng điểm thấp không nên bị bỏ lại; chính sách phù hợp hơn là đầu tư nền tảng số, kỹ năng số và kết nối trước khi mở rộng AI chuyên sâu.",
     ]
+
+
+def assignment_answers(expert_ranking, entropy_ranking, sensitivity_df, comparison_df):
+    """Answer the TOPSIS ranking and policy questions in Bài 6."""
+    top3 = expert_ranking.head(3)["region_name"].tolist()
+    entropy_top3 = entropy_ranking.head(3)["region_name"].tolist()
+    comparison = comparison_df.copy()
+    comparison["rank_change"] = (comparison["rank_expert"] - comparison["rank_entropy"]).abs()
+    largest_change = comparison.sort_values("rank_change", ascending=False).iloc[0]
+    top3_sets = (
+        sensitivity_df[sensitivity_df["rank"] <= 3]
+        .groupby("ai_weight")["region_name"]
+        .apply(lambda values: tuple(values))
+    )
+    stable_top3 = len(set(top3_sets.tolist())) == 1
+
+    programming = [
+        {
+            "code": "Câu 6.4.1",
+            "question": "Tính TOPSIS với trọng số chuyên gia.",
+            "answer": (
+                f"Vùng dẫn đầu là {expert_ranking.iloc[0]['region_name']} với C*="
+                f"{expert_ranking.iloc[0]['topsis_score']:.4f}. Top-3: {', '.join(top3)}."
+            ),
+            "evidence": "Tab Ranking expert.",
+        },
+        {
+            "code": "Câu 6.4.2",
+            "question": "Tính trọng số Entropy và so sánh thứ hạng.",
+            "answer": (
+                f"Top-3 Entropy: {', '.join(entropy_top3)}. Vùng thay đổi hạng nhiều nhất là "
+                f"{largest_change['region_name']}, chênh {int(largest_change['rank_change'])} bậc."
+            ),
+            "evidence": "Tab Ranking entropy, Weights và bảng so sánh ranking.",
+        },
+        {
+            "code": "Câu 6.4.3",
+            "question": "Độ nhạy khi thay đổi trọng số AI từ 0,10 đến 0,40.",
+            "answer": (
+                f"Top-3 {'ổn định' if stable_top3 else 'có thay đổi'} trên lưới trọng số đang chạy. "
+                f"Có {len(top3_sets)} mức trọng số AI được kiểm tra."
+            ),
+            "evidence": "Tab Sensitivity AI và heatmap top-1.",
+        },
+        {
+            "code": "Câu 6.4.4",
+            "question": "Mở rộng so sánh thêm AHP.",
+            "answer": (
+                "Phiên bản hiện tại chưa triển khai ma trận so sánh cặp AHP; chỉ có TOPSIS expert và Entropy. "
+                "Không có kết quả AHP để kết luận phương pháp nào tốt hơn."
+            ),
+            "status": "Phần mở rộng AHP chưa triển khai.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 6.5a",
+            "question": "Vùng dẫn đầu có nên đặt trung tâm AI đầu tiên không?",
+            "answer": (
+                f"{top3[0]} dẫn đầu theo TOPSIS. Đây là ứng viên định lượng mạnh nhất, nhưng quyết định trung tâm AI "
+                "còn cần đất đai, điện, trung tâm dữ liệu, liên kết đại học và yêu cầu an ninh."
+            ),
+            "evidence": "Điểm TOPSIS expert cao nhất.",
+        },
+        {
+            "code": "Câu 6.5b",
+            "question": "Vùng nào thay đổi hạng nhiều nhất khi dùng Entropy?",
+            "answer": (
+                f"{largest_change['region_name']} thay đổi {int(largest_change['rank_change'])} bậc. "
+                "Nguyên nhân là Entropy ưu tiên tiêu chí có độ phân tán dữ liệu lớn, khác với trọng số chuyên gia."
+            ),
+            "evidence": "rank_expert và rank_entropy.",
+        },
+        {
+            "code": "Câu 6.5c",
+            "question": "Tương quan giữa AI readiness và internet ảnh hưởng thế nào?",
+            "answer": (
+                "Nếu hai tiêu chí tương quan cao, TOPSIS có thể đếm hai lần cùng một lợi thế và làm vùng dẫn đầu mạnh hơn quá mức. "
+                "Nên kiểm tra ma trận tương quan, giảm/gộp trọng số hoặc dùng PCA/robustness analysis."
+            ),
+            "evidence": "Giới hạn phương pháp TOPSIS tuyến tính.",
+        },
+        {
+            "code": "Câu 6.5d",
+            "question": "Chọn ba vùng cho ba trung tâm AI.",
+            "answer": (
+                f"Theo kết quả thuần TOPSIS: {', '.join(top3)}. Trước quyết định cuối cần thêm tiêu chí địa-chính trị, "
+                "an ninh năng lượng, liên kết vùng và mục tiêu thu hẹp khoảng cách."
+            ),
+            "evidence": "Top-3 expert ranking.",
+        },
+    ]
+    return programming, policy
 
 
 regions = get_data()
@@ -212,3 +311,7 @@ st.plotly_chart(radar_top3(expert_ranking), use_container_width=True)
 
 st.header("🏛️ 5. Diễn giải chính sách")
 policy_box(policy_interpretation(expert_ranking, entropy_ranking), kind="success")
+programming_answers, discussion_answers = assignment_answers(
+    expert_ranking, entropy_ranking, sensitivity_df, comparison_df
+)
+render_assignment_answers(programming_answers, discussion_answers)

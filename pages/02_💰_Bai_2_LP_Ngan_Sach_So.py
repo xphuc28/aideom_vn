@@ -19,7 +19,13 @@ from src.bai02_lp_budget import (
     solve_bai02_scipy,
 )
 from src.data_loader import load_sectors
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -81,6 +87,100 @@ def policy_answers(result: dict[str, object]) -> list[str]:
         "Nếu mục tiêu là tăng tốc công nghệ lõi, nên theo dõi x2 và x4; nếu mục tiêu là bao trùm, "
         "so sánh thêm kịch bản tăng tối thiểu nhân lực số.",
     ]
+
+
+def assignment_answers(result, sensitivity_df, human_result, solver_name):
+    """Build direct answers for Bài 2 from the active solver outputs."""
+    allocation = result["allocation_df"]
+    alloc_map = dict(zip(allocation["variable"], allocation["allocation"]))
+    total = float(allocation["allocation"].sum())
+    strategic = float(allocation.loc[allocation["variable"].isin(["x2", "x4"]), "allocation"].sum())
+    shadow = result.get("shadow_prices", {}).get("budget_total")
+    objective_text = "N/A" if result.get("objective") is None else f"{float(result['objective']):.2f}"
+    human_objective = human_result.get("objective")
+    objective_change = (
+        None
+        if result.get("objective") is None or human_objective is None
+        else float(human_objective) - float(result["objective"])
+    )
+    sensitivity_text = "; ".join(
+        f"B={row.budget:.0f} -> Z*={row.objective:.2f}"
+        for row in sensitivity_df.itertuples()
+        if pd.notna(row.objective)
+    )
+
+    programming = [
+        {
+            "code": "Câu 2.4.1",
+            "question": "Giải bằng scipy.optimize.linprog và báo cáo phân bổ tối ưu.",
+            "answer": (
+                f"Solver đang hiển thị là {solver_name}; status={result['status']}, Z*={objective_text}. "
+                f"Phân bổ: x1={alloc_map.get('x1', 0):.2f}, x2={alloc_map.get('x2', 0):.2f}, "
+                f"x3={alloc_map.get('x3', 0):.2f}, x4={alloc_map.get('x4', 0):.2f}."
+            ),
+            "evidence": "Bảng phân bổ tối ưu và KPI solver/status/Z tối ưu.",
+        },
+        {
+            "code": "Câu 2.4.2",
+            "question": "Giải bằng PuLP, đọc dual và giải thích shadow price ngân sách.",
+            "answer": (
+                f"Shadow price ngân sách là {shadow:.3f} đơn vị Z cho mỗi 1 nghìn tỷ VND tăng thêm."
+                if shadow is not None
+                else "Solver hiện tại không trả dual value. Dashboard không báo lỗi mà dùng binding constraints để nhận diện nút thắt; có thể bấm Chạy PuLP để đối chiếu."
+            ),
+            "evidence": f"Binding constraints: {', '.join(result.get('binding_constraints', [])) or 'không có'}.",
+        },
+        {
+            "code": "Câu 2.4.3",
+            "question": "Phân tích độ nhạy B=100, 120, 140 và đường Z*(B).",
+            "answer": f"Kết quả độ nhạy hiện có: {sensitivity_text}.",
+            "evidence": "Bảng Phân tích độ nhạy ngân sách và biểu đồ Z*(B).",
+        },
+        {
+            "code": "Câu 2.4.4",
+            "question": "Tăng mức tối thiểu nhân lực số lên x3>=30.",
+            "answer": (
+                f"Kịch bản x3>=30 có status={human_result['status']}, Z*={human_objective}. "
+                + (
+                    f"So với nghiệm đang chạy, Z* thay đổi {objective_change:+.2f}."
+                    if objective_change is not None
+                    else "Không tính được chênh lệch objective."
+                )
+            ),
+            "evidence": "Bảng Kịch bản ưu tiên nhân lực số.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 2.5a",
+            "question": "Tăng ngân sách 1 tỷ VND làm GDP kỳ vọng tăng bao nhiêu?",
+            "answer": (
+                f"Trong miền độ nhạy hiện tại, mức tăng biên xấp xỉ {shadow:.3f} đơn vị Z mỗi 1 nghìn tỷ VND."
+                if shadow is not None
+                else "Chưa có dual trực tiếp; có thể ước lượng độ dốc từ bảng Z*(B). Đây chỉ là giá trị biên trong mô hình, không phải cận trên chắc chắn của chi phí cơ hội vốn công."
+            ),
+            "evidence": "Shadow price hoặc độ dốc cục bộ của sensitivity_df.",
+        },
+        {
+            "code": "Câu 2.5b",
+            "question": "Vì sao R&D có hệ số cao nhất nhưng mức tối thiểu thấp nhất?",
+            "answer": (
+                "Hệ số 1,35 khiến mô hình dồn phần ngân sách còn lại vào R&D, còn sàn 10 chỉ bảo đảm mức nền. "
+                "Điều này phản ánh thiết kế ràng buộc, không chứng minh R&D ít quan trọng; thực tế cần xét năng lực hấp thụ và độ trễ."
+            ),
+            "evidence": f"x4 nhận {alloc_map.get('x4', 0):.2f} dù mức sàn chỉ là 10.",
+        },
+        {
+            "code": "Câu 2.5c",
+            "question": "Tỷ lệ tối thiểu 35% cho AI+R&D có khả thi không?",
+            "answer": (
+                f"Nghiệm hiện tại dành {strategic / total * 100:.1f}% cho AI+R&D, nên thỏa ràng buộc 35%. "
+                "Tính khả thi ngân sách nhà nước thực tế vẫn cần đối chiếu với giao thông, an sinh và nguồn vốn ngoài ngân sách."
+            ),
+            "evidence": f"AI+R&D={strategic:.2f}/{total:.2f}.",
+        },
+    ]
+    return programming, policy
 
 
 sectors = get_data()
@@ -220,3 +320,7 @@ if result is None:
     policy_box("Sau khi chạy solver, trang sẽ trả lời câu hỏi ngân sách nên ưu tiên vào đâu và nút thắt nằm ở ràng buộc nào.")
 else:
     policy_box(policy_answers(result), kind="success")
+    programming_answers, discussion_answers = assignment_answers(
+        result, sensitivity_df, human_result, solver_name
+    )
+    render_assignment_answers(programming_answers, discussion_answers)

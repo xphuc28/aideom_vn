@@ -17,7 +17,13 @@ from src.bai03_priority import (
     sensitivity_ai_weight,
 )
 from src.data_loader import load_sectors
-from src.ui import apply_dashboard_style, policy_box, render_page_badges, render_sidebar
+from src.ui import (
+    apply_dashboard_style,
+    policy_box,
+    render_assignment_answers,
+    render_page_badges,
+    render_sidebar,
+)
 from src.visualization import download_dataframe_button, render_kpi_cards
 
 
@@ -52,6 +58,95 @@ def policy_interpretation(ranking_df, comparison_df) -> list[str]:
         "Nếu tăng trọng số AI readiness làm thay đổi ngành đứng đầu, chính sách cần tách riêng "
         "gói thúc đẩy AI cho ngành dẫn dắt và gói giảm rủi ro tự động hóa cho ngành nhiều lao động.",
     ]
+
+
+def assignment_answers(ranking_df, normalized_df, sensitivity_df, comparison_df):
+    """Answer Bài 3 questions using the active priority calculation."""
+    norm_cols = [column for column in normalized_df.columns if column.endswith("_norm")]
+    norm_min = float(normalized_df[norm_cols].min().min())
+    norm_max = float(normalized_df[norm_cols].max().max())
+    top3 = ranking_df.head(3)["sector_name"].tolist()
+    top_by_ai = (
+        sensitivity_df[sensitivity_df["is_top_rank"] == 1]
+        .groupby("ai_weight", as_index=False)
+        .first()[["ai_weight", "sector_name"]]
+    )
+    sensitivity_summary = "; ".join(
+        f"w_AI={row.ai_weight:.2f}: {row.sector_name}" for row in top_by_ai.itertuples()
+    )
+    growth_top3 = comparison_df["growth_oriented"].dropna().tolist()
+    inclusive_top3 = comparison_df["inclusive_oriented"].dropna().tolist()
+    mining = ranking_df[ranking_df["sector_name"].str.contains("Khai khoáng", case=False)].iloc[0]
+
+    programming = [
+        {
+            "code": "Câu 3.4.1",
+            "question": "Chuẩn hóa min-max 7 tiêu chí và đảo chiều Risk.",
+            "answer": (
+                f"Ma trận chuẩn hóa có giá trị nhỏ nhất {norm_min:.3f} và lớn nhất {norm_max:.3f}, "
+                "nằm đúng trong [0,1]. Risk được xử lý theo chế độ đang chọn trên giao diện."
+            ),
+            "evidence": "Bảng Ma trận chuẩn hóa.",
+        },
+        {
+            "code": "Câu 3.4.2",
+            "question": "Tính Priority và xếp hạng 10 ngành.",
+            "answer": (
+                "Top-3 theo trọng số hiện tại là "
+                + ", ".join(f"{i + 1}. {name}" for i, name in enumerate(top3))
+                + f". Điểm cao nhất bằng {ranking_df.iloc[0]['priority_score']:.3f}."
+            ),
+            "evidence": "Bảng Ranking 10 ngành.",
+        },
+        {
+            "code": "Câu 3.4.3",
+            "question": "Thay đổi trọng số AI readiness từ 0,05 đến 0,40.",
+            "answer": sensitivity_summary + ".",
+            "evidence": "Bảng Sensitivity và heatmap top-1 theo trọng số AI.",
+        },
+        {
+            "code": "Câu 3.4.4",
+            "question": "So sánh định hướng tăng trưởng và định hướng bao trùm.",
+            "answer": (
+                f"Growth-oriented top-3: {', '.join(growth_top3)}. "
+                f"Inclusive-oriented top-3: {', '.join(inclusive_top3)}."
+            ),
+            "evidence": "Bảng So sánh top-3 theo định hướng chính sách.",
+        },
+    ]
+    policy = [
+        {
+            "code": "Câu 3.5a",
+            "question": "Ba ngành nào nên ưu tiên chuyển đổi số và AI trước?",
+            "answer": (
+                f"Theo bộ trọng số hiện tại: {', '.join(top3)}. Đây là kết quả của tiêu chí định lượng; "
+                "việc đối chiếu Nghị quyết 57 cần xem thêm vai trò công nghệ lõi, đổi mới sáng tạo và năng lực lan tỏa."
+            ),
+            "evidence": "Ba dòng đầu ranking_df.",
+        },
+        {
+            "code": "Câu 3.5b",
+            "question": "Vì sao Khai khoáng năng suất cao nhưng không được ưu tiên?",
+            "answer": (
+                f"Khai khoáng xếp hạng {int(mining['rank'])} với priority={mining['priority_score']:.3f}. "
+                f"Dù productivity_norm={mining['productivity_norm']:.3f}, ngành có growth_norm={mining['growth_norm']:.3f}, "
+                f"spillover_norm={mining['spillover_norm']:.3f} và automation_risk_norm={mining['automation_risk_norm']:.3f}; "
+                "điểm tổng hợp vì thế thấp."
+            ),
+            "evidence": "Các cột chuẩn hóa của dòng Khai khoáng.",
+        },
+        {
+            "code": "Câu 3.5c",
+            "question": "Ai nên quyết định bộ trọng số?",
+            "answer": (
+                "Nên dùng quy trình hỗn hợp: chuyên gia đề xuất thang đo, hội đồng chính sách chịu trách nhiệm mục tiêu, "
+                "và công khai phân tích độ nhạy để doanh nghiệp/người lao động phản biện. Cách này tăng cả chất lượng kỹ thuật "
+                "lẫn tính chính danh."
+            ),
+            "evidence": "Sự thay đổi top-1/top-3 khi trọng số AI và định hướng chính sách thay đổi.",
+        },
+    ]
+    return programming, policy
 
 
 sectors = get_data()
@@ -166,6 +261,10 @@ try:
 
     st.header("🏛️ 5. Diễn giải chính sách")
     policy_box(policy_interpretation(ranking_df, top3_comparison), kind="success")
+    programming_answers, discussion_answers = assignment_answers(
+        ranking_df, normalized_df, sensitivity_df, top3_comparison
+    )
+    render_assignment_answers(programming_answers, discussion_answers)
 
 except Exception as exc:
     st.error(f"Không chạy được Bài 3: {exc}")
