@@ -16,11 +16,11 @@ from src.bai03_priority import (
     module_status,
     sensitivity_ai_weight,
 )
+from src.assignment_ui import render_assignment_answers
 from src.data_loader import load_sectors
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )

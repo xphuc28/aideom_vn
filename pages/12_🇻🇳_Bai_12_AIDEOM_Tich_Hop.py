@@ -10,6 +10,7 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.data_loader import load_macro, load_regions, load_sectors
+from src.assignment_ui import render_assignment_answers
 from src.scenario_engine import (
     COST_KPIS,
     SCENARIOS,
@@ -20,7 +21,6 @@ from src.scenario_engine import (
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )

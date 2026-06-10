@@ -17,10 +17,10 @@ from src.bai09_labor_ai import (
     solve_bai09,
     stress_test_risk,
 )
+from src.assignment_ui import render_assignment_answers
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )

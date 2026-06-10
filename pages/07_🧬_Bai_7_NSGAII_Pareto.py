@@ -11,11 +11,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.bai04_region_lp import ITEMS, ITEM_NAMES, REGIONS, REGION_NAMES
 from src.bai07_pareto import MODULE_TITLE, module_status, random_feasible_search, run_nsga2
+from src.assignment_ui import render_assignment_answers
 from src.data_loader import load_regions
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )

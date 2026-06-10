@@ -20,11 +20,11 @@ from src.bai06_topsis import (
     sensitivity_ai_weight,
     topsis,
 )
+from src.assignment_ui import render_assignment_answers
 from src.data_loader import load_regions
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )

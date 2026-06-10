@@ -18,11 +18,11 @@ from src.bai02_lp_budget import (
     solve_bai02_pulp,
     solve_bai02_scipy,
 )
+from src.assignment_ui import render_assignment_answers
 from src.data_loader import load_sectors
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )

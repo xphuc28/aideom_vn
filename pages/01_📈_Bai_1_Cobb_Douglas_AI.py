@@ -10,11 +10,11 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.bai01_cobb_douglas import DEFAULT_PARAMS, MODULE_TITLE, module_status, run_bai01
+from src.assignment_ui import render_assignment_answers
 from src.data_loader import load_macro
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )

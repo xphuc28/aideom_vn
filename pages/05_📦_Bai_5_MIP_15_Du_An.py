@@ -17,10 +17,10 @@ from src.bai05_mip_projects import (
     solve_budget_scenario,
     solve_with_risk_probabilities,
 )
+from src.assignment_ui import render_assignment_answers
 from src.ui import (
     apply_dashboard_style,
     policy_box,
-    render_assignment_answers,
     render_page_badges,
     render_sidebar,
 )
